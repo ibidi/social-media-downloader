@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Social Media Downloader - Indir</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a14;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 80px 20px 60px;
+      background: linear-gradient(180deg, rgba(102,126,234,0.12) 0%, transparent 100%);
+    }
+
+    .hero h1 {
+      font-size: 42px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 16px;
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: #999;
+      max-width: 500px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+    }
+
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 40px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      text-decoration: none;
+      border-radius: 14px;
+      font-size: 18px;
+      font-weight: 700;
+      transition: all 0.3s ease;
+      box-shadow: 0 8px 30px rgba(102, 126, 234, 0.3);
+    }
+
+    .download-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(102, 126, 234, 0.5);
+    }
+
+    .version-tag {
+      display: inline-block;
+      margin-top: 16px;
+      padding: 4px 12px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 20px;
+      font-size: 13px;
+      color: #888;
+    }
+
+    .platforms {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .platform-badge {
+      padding: 6px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .platform-badge.twitter { background: rgba(255,255,255,0.08); color: #e7e9ea; }
+    .platform-badge.youtube { background: rgba(255,0,0,0.1); color: #ff4444; }
+    .platform-badge.instagram { background: linear-gradient(135deg, rgba(131,58,180,0.15), rgba(253,29,29,0.15)); color: #e1306c; }
+
+    .features {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 60px 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+    }
+
+    .feature-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 28px;
+      transition: border-color 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(102,126,234,0.3);
+    }
+
+    .feature-card .icon {
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+
+    .feature-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .feature-card p {
+      font-size: 14px;
+      color: #888;
+      line-height: 1.6;
+    }
+
+    .install-steps {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 60px 20px;
+    }
+
+    .install-steps h2 {
+      text-align: center;
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 40px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .step {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 32px;
+      align-items: flex-start;
+    }
+
+    .step-number {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .step-content h4 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #ddd;
+    }
+
+    .step-content p {
+      font-size: 14px;
+      color: #888;
+      line-height: 1.6;
+    }
+
+    .step-content code {
+      display: inline-block;
+      background: rgba(102,126,234,0.15);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #667eea;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+
+    .browsers {
+      display: flex;
+      justify-content: center;
+      gap: 32px;
+      padding: 40px 20px;
+      flex-wrap: wrap;
+    }
+
+    .browser-item {
+      text-align: center;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .browser-item .name {
+      margin-top: 8px;
+    }
+
+    .browser-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin: 0 auto;
+    }
+
+    footer {
+      text-align: center;
+      padding: 40px 20px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      color: #555;
+      font-size: 13px;
+    }
+
+    footer a {
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hero">
+    <h1>Social Media Downloader</h1>
+    <p>X, YouTube ve Instagram'dan resim ve videolari tek tikla indirin. Ucretsiz, acik kaynak, gizlilige saygili.</p>
+
+    <a href="https://github.com/AIT/social-media-downloader/archive/refs/heads/main.zip" class="download-btn" id="downloadBtn">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+      ZIP Olarak Indir
+    </a>
+
+    <div class="version-tag">v1.1.0 - Manifest V3</div>
+
+    <div class="platforms">
+      <span class="platform-badge twitter">X (Twitter)</span>
+      <span class="platform-badge youtube">YouTube</span>
+      <span class="platform-badge instagram">Instagram</span>
+    </div>
+  </div>
+
+  <div class="features">
+    <div class="feature-card">
+      <div class="icon">X</div>
+      <h3>X (Twitter)</h3>
+      <p>Tweet resimlerini orijinal kalitede, videolari 1080p/720p/480p secenekleriyle, GIF'leri ve banner resimlerini indirin.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">&#9654;</div>
+      <h3>YouTube</h3>
+      <p>Video thumbnail'lerini 4 farkli kalitede indirin. Video linkini tek tikla kopyalayin.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon">&#128247;</div>
+      <h3>Instagram</h3>
+      <p>Gonderi resimleri, videolar, Reels, Story ve Carousel icerikleri indirin.</p>
+    </div>
+  </div>
+
+  <div class="install-steps">
+    <h2>Nasil Kurulur?</h2>
+
+    <div class="step">
+      <div class="step-number">1</div>
+      <div class="step-content">
+        <h4>ZIP'i indirin</h4>
+        <p>Yukaridaki butona tiklayarak eklentiyi ZIP olarak indirin ve bir klasore cikartin.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">2</div>
+      <div class="step-content">
+        <h4>Eklenti sayfasini acin</h4>
+        <p>Tarayicinizin adres cubuguna yazin:<br>
+          Chrome: <code>chrome://extensions</code><br>
+          Edge: <code>edge://extensions</code><br>
+          Brave: <code>brave://extensions</code>
+        </p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-content">
+        <h4>Gelistirici modunu acin</h4>
+        <p>Sag ust kosedeki <strong>"Gelistirici modu"</strong> (Developer mode) anahtarini acik konuma getirin.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">4</div>
+      <div class="step-content">
+        <h4>Eklentiyi yukleyin</h4>
+        <p><strong>"Paketlenmemis oge yukle"</strong> (Load unpacked) butonuna tiklayin ve ZIP'ten cikardiginiz klasoru secin.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">5</div>
+      <div class="step-content">
+        <h4>Hazir!</h4>
+        <p>Eklenti tarayici cubugunda gorunecek. X, YouTube veya Instagram'a gidin ve indirme butonlarini gorun.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="browsers">
+    <div class="browser-item">
+      <div class="browser-icon">&#127760;</div>
+      <div class="name">Chrome</div>
+    </div>
+    <div class="browser-item">
+      <div class="browser-icon">&#128316;</div>
+      <div class="name">Edge</div>
+    </div>
+    <div class="browser-item">
+      <div class="browser-icon">&#129409;</div>
+      <div class="name">Brave</div>
+    </div>
+    <div class="browser-item">
+      <div class="browser-icon">&#127909;</div>
+      <div class="name">Opera</div>
+    </div>
+  </div>
+
+  <footer>
+    <p>
+      <a href="https://github.com/AIT/social-media-downloader">GitHub</a> &middot;
+      <a href="privacy.html">Gizlilik Politikasi</a> &middot;
+      MIT Lisansi
+    </p>
+    <p style="margin-top: 8px;">Bu eklenti yalnizca kisisel kullanim icindir. Telif hakki ile korunan icerikleri indirmek kullanicinin sorumlulugundadir.</p>
+  </footer>
+
+</body>
+</html>

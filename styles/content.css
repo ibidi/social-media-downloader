@@ -1,0 +1,103 @@
+/* ===== Content Script Styles ===== */
+
+/* İndirme Butonu Overlay */
+.smd-download-btn {
+  position: absolute;
+  z-index: 9999;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.smd-download-btn:hover {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  transform: scale(1.15);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.5);
+}
+
+.smd-download-btn svg {
+  width: 18px;
+  height: 18px;
+  pointer-events: none;
+}
+
+/* Butonu göster (parent hover) */
+.smd-media-wrapper:hover .smd-download-btn,
+[data-testid="tweet"]:hover .smd-download-btn,
+article:hover .smd-download-btn,
+.smd-download-btn.smd-visible {
+  opacity: 1;
+}
+
+/* YouTube özel buton */
+.smd-yt-download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Roboto', Arial, sans-serif;
+  margin-left: 8px;
+}
+
+.smd-yt-download-btn:hover {
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  transform: translateY(-1px);
+}
+
+.smd-yt-download-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* İndirme durumu göstergesi */
+.smd-download-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+  transform: translateY(100px);
+  transition: transform 0.3s ease;
+}
+
+.smd-download-indicator.show {
+  transform: translateY(0);
+}
+
+.smd-download-indicator.success {
+  border-left: 3px solid #2ecc71;
+}
+
+.smd-download-indicator.error {
+  border-left: 3px solid #e74c3c;
+}
+

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Social Media Downloader</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="logo">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L13.09 8.26L18 4L14.74 9.91L21 10L15.18 12.5L19.5 18L13.27 14.73L12 21L10.73 14.73L4.5 18L8.82 12.5L3 10L9.26 9.91L6 4L10.91 8.26L12 2Z" fill="url(#grad1)"/>
+          <defs>
+            <linearGradient id="grad1" x1="3" y1="2" x2="21" y2="21">
+              <stop offset="0%" style="stop-color:#667eea"/>
+              <stop offset="100%" style="stop-color:#764ba2"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <h1>Social Downloader</h1>
+      </div>
+      <p class="subtitle">X, YouTube ve Instagram'dan içerik indirin</p>
+    </div>
+
+    <!-- Platform Status -->
+    <div class="platform-status" id="platformStatus">
+      <div class="status-badge" id="statusBadge">
+        <span class="status-dot"></span>
+        <span class="status-text">Sayfa algılanıyor...</span>
+      </div>
+    </div>
+
+    <!-- Current Page Info -->
+    <div class="card" id="currentPageCard" style="display: none;">
+      <div class="card-header">
+        <span class="card-icon" id="platformIcon">🌐</span>
+        <span class="card-title" id="platformName">Platform</span>
+      </div>
+      <div class="card-body">
+        <p class="page-title" id="pageTitle">Sayfa başlığı</p>
+        <p class="page-url" id="pageUrl">URL</p>
+      </div>
+    </div>
+
+    <!-- Media Found -->
+    <div class="card" id="mediaCard" style="display: none;">
+      <div class="card-header">
+        <span class="card-icon">📦</span>
+        <span class="card-title">Bulunan Medya</span>
+        <span class="media-count" id="mediaCount">0</span>
+      </div>
+      <div class="media-list" id="mediaList">
+        <!-- Medya öğeleri dinamik olarak eklenir -->
+      </div>
+      <button class="btn btn-primary" id="downloadAllBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+        </svg>
+        Tümünü İndir
+      </button>
+    </div>
+
+    <!-- No Media -->
+    <div class="card empty-state" id="emptyState" style="display: none;">
+      <div class="empty-icon">🔍</div>
+      <p>Bu sayfada indirilebilir medya bulunamadı.</p>
+      <p class="hint">Bir gönderi sayfasına gidin ve tekrar deneyin.</p>
+    </div>
+
+    <!-- Not Supported -->
+    <div class="card empty-state" id="notSupported" style="display: none;">
+      <div class="empty-icon">⚠️</div>
+      <p>Bu sayfa desteklenmiyor.</p>
+      <p class="hint">X, YouTube veya Instagram'a gidin.</p>
+    </div>
+
+    <!-- Instructions -->
+    <div class="instructions">
+      <h3>Nasıl Kullanılır?</h3>
+      <div class="instruction-item">
+        <span class="step">1</span>
+        <span>Desteklenen bir platforma gidin</span>
+      </div>
+      <div class="instruction-item">
+        <span class="step">2</span>
+        <span>İndirmek istediğiniz gönderiyi açın</span>
+      </div>
+      <div class="instruction-item">
+        <span class="step">3</span>
+        <span>İndirme butonuna tıklayın veya eklentiyi açın</span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="platforms">
+        <span class="platform-tag twitter">𝕏</span>
+        <span class="platform-tag youtube">▶ YouTube</span>
+        <span class="platform-tag instagram">📷 Instagram</span>
+      </div>
+      <p class="version">v1.0.0</p>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
+
