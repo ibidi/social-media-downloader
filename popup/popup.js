@@ -14,8 +14,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const downloadAllBtn = document.getElementById('downloadAllBtn');
   const emptyState = document.getElementById('emptyState');
   const notSupported = document.getElementById('notSupported');
+  const versionEl = document.getElementById('extensionVersion');
 
   let currentMedia = [];
+  versionEl.textContent = `v${chrome.runtime.getManifest().version}`;
 
   // Aktif sekmeyi al
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -46,7 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const response = await chrome.tabs.sendMessage(tab.id, { action: 'getMedia' });
 
-    if (response && response.media && response.media.length > 0) {
+    if (response && Array.isArray(response.media) && response.media.length > 0) {
       currentMedia = response.media;
       showMedia(currentMedia);
     } else {
@@ -60,14 +62,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Content script yüklenmemiş olabilir, yeniden enjekte et
     try {
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: [`content/${platform.id}.js`]
-      });
+      await reinjectContentScripts(platform.id, tab.id);
 
       // Tekrar dene
       const retryResponse = await chrome.tabs.sendMessage(tab.id, { action: 'getMedia' });
-      if (retryResponse && retryResponse.media && retryResponse.media.length > 0) {
+      if (retryResponse && Array.isArray(retryResponse.media) && retryResponse.media.length > 0) {
         currentMedia = retryResponse.media;
         emptyState.style.display = 'none';
         showMedia(currentMedia);
@@ -116,28 +115,100 @@ document.addEventListener('DOMContentLoaded', async () => {
       const typeClass = isVideo ? 'video' : 'image';
       const typeLabel = isVideo ? 'Video' : 'Resim';
       const thumbSrc = media.thumbnail || media.url;
+      const fileLabel = media.filename || `media_${index + 1}`;
+      const qualityLabel = media.quality ? `${typeLabel} • ${media.quality}` : typeLabel;
 
-      item.innerHTML = `
-        ${media.thumbnail || !isVideo ? `<img class="media-thumb" src="${thumbSrc}" alt="" onerror="this.style.display='none'">` : '<div class="media-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px;">🎬</div>'}
-        <div class="media-info">
-          <div class="media-type ${typeClass}">${typeLabel}${media.quality ? ' • ' + media.quality : ''}</div>
-          <div class="media-name">${media.filename || `media_${index + 1}`}</div>
-        </div>
-        <button class="media-download-btn" data-index="${index}" title="İndir">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
-          </svg>
-        </button>
-      `;
+      if (media.thumbnail || !isVideo) {
+        const thumbImg = document.createElement('img');
+        thumbImg.className = 'media-thumb';
+        thumbImg.src = thumbSrc;
+        thumbImg.alt = '';
+        thumbImg.addEventListener('error', () => {
+          thumbImg.style.display = 'none';
+        });
+        item.appendChild(thumbImg);
+      } else {
+        const thumbPlaceholder = document.createElement('div');
+        thumbPlaceholder.className = 'media-thumb';
+        thumbPlaceholder.style.display = 'flex';
+        thumbPlaceholder.style.alignItems = 'center';
+        thumbPlaceholder.style.justifyContent = 'center';
+        thumbPlaceholder.style.fontSize = '20px';
+        thumbPlaceholder.textContent = '🎬';
+        item.appendChild(thumbPlaceholder);
+      }
 
-      const downloadBtn = item.querySelector('.media-download-btn');
+      const info = document.createElement('div');
+      info.className = 'media-info';
+
+      const type = document.createElement('div');
+      type.className = `media-type ${typeClass}`;
+      type.textContent = qualityLabel;
+      info.appendChild(type);
+
+      const name = document.createElement('div');
+      name.className = 'media-name';
+      name.textContent = fileLabel;
+      info.appendChild(name);
+
+      item.appendChild(info);
+
+      const downloadBtn = document.createElement('button');
+      downloadBtn.className = 'media-download-btn';
+      downloadBtn.title = 'İndir';
+      downloadBtn.appendChild(createDownloadIcon());
+
       downloadBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         downloadMedia(media);
         showToast('İndirme başladı!', 'success');
       });
 
+      item.appendChild(downloadBtn);
       mediaList.appendChild(item);
+    });
+  }
+
+  function createDownloadIcon() {
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', 'currentColor');
+    svg.setAttribute('stroke-width', '2');
+
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', 'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3');
+    svg.appendChild(path);
+
+    return svg;
+  }
+
+  async function reinjectContentScripts(platformId, tabId) {
+    if (platformId === 'twitter') {
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['content/twitter-interceptor.js'],
+        world: 'MAIN'
+      });
+      await chrome.scripting.executeScript({
+        target: { tabId },
+        files: ['content/twitter.js']
+      });
+      await chrome.scripting.insertCSS({
+        target: { tabId },
+        files: ['styles/content.css']
+      });
+      return;
+    }
+
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: [`content/${platformId}.js`]
+    });
+    await chrome.scripting.insertCSS({
+      target: { tabId },
+      files: ['styles/content.css']
     });
   }
 
@@ -176,4 +247,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 2500);
   }
 });
-

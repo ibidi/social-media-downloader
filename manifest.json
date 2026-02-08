@@ -1,13 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Social Media Downloader",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "X (Twitter), YouTube ve Instagram'dan gönderi, resim ve video indirin.",
   "permissions": [
     "downloads",
     "activeTab",
-    "scripting",
-    "storage"
+    "scripting"
   ],
   "host_permissions": [
     "https://twitter.com/*",

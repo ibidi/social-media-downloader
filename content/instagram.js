@@ -2,8 +2,14 @@
 
 (() => {
   'use strict';
+  if (window.__smdInstagramContentLoaded) {
+    return;
+  }
+  window.__smdInstagramContentLoaded = true;
 
   const DOWNLOAD_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+  const DOM_UPDATE_DEBOUNCE_MS = 200;
+  let addButtonsTimer = null;
 
   // Mesajları dinle
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -269,6 +275,11 @@
     });
   }
 
+  function scheduleAddDownloadButtons() {
+    clearTimeout(addButtonsTimer);
+    addButtonsTimer = setTimeout(addDownloadButtons, DOM_UPDATE_DEBOUNCE_MS);
+  }
+
   // İndirme butonu oluştur
   function createDownloadButton() {
     const btn = document.createElement('button');
@@ -318,13 +329,13 @@
       }
     }
     if (shouldCheck) {
-      addDownloadButtons();
+      scheduleAddDownloadButtons();
     }
   });
 
   // Başlat
   function init() {
-    addDownloadButtons();
+    scheduleAddDownloadButtons();
     observer.observe(document.body, {
       childList: true,
       subtree: true
@@ -338,4 +349,3 @@
     init();
   }
 })();
-

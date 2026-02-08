@@ -2,8 +2,13 @@
 
 (() => {
   'use strict';
+  if (window.__smdYouTubeContentLoaded) {
+    return;
+  }
+  window.__smdYouTubeContentLoaded = true;
 
   const DOWNLOAD_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+  const URL_CHECK_DEBOUNCE_MS = 200;
 
   // Mesajları dinle
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -318,8 +323,9 @@
 
   // URL değişikliklerini izle (YouTube SPA)
   let lastUrl = window.location.href;
+  let urlCheckTimer = null;
 
-  const urlObserver = new MutationObserver(() => {
+  function handleUrlChange() {
     if (window.location.href !== lastUrl) {
       lastUrl = window.location.href;
       // Eski butonları kaldır
@@ -327,12 +333,50 @@
       // Yeni buton ekle
       setTimeout(addDownloadButton, 1500);
     }
+  }
+
+  function scheduleUrlCheck() {
+    clearTimeout(urlCheckTimer);
+    urlCheckTimer = setTimeout(handleUrlChange, URL_CHECK_DEBOUNCE_MS);
+  }
+
+  function observeSpaNavigation(onChange) {
+    const notify = () => {
+      setTimeout(onChange, 0);
+    };
+
+    const originalPushState = history.pushState;
+    history.pushState = function (...args) {
+      const result = originalPushState.apply(this, args);
+      notify();
+      return result;
+    };
+
+    const originalReplaceState = history.replaceState;
+    history.replaceState = function (...args) {
+      const result = originalReplaceState.apply(this, args);
+      notify();
+      return result;
+    };
+
+    window.addEventListener('popstate', notify);
+    window.addEventListener('hashchange', notify);
+  }
+
+  const urlObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.addedNodes.length > 0 || mutation.removedNodes.length > 0) {
+        scheduleUrlCheck();
+        break;
+      }
+    }
   });
 
   // Başlat
   function init() {
     setTimeout(addDownloadButton, 2000); // YouTube'un yüklenmesini bekle
     urlObserver.observe(document.body, { childList: true, subtree: true });
+    observeSpaNavigation(scheduleUrlCheck);
     console.log('Social Media Downloader: YouTube modülü yüklendi');
   }
 
@@ -342,4 +386,3 @@
     init();
   }
 })();
-

@@ -2,15 +2,21 @@
 
 (() => {
   'use strict';
+  if (window.__smdTwitterContentLoaded) {
+    return;
+  }
+  window.__smdTwitterContentLoaded = true;
 
   const DOWNLOAD_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
   const LOADING_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite"/></path></svg>`;
+  const DOM_UPDATE_DEBOUNCE_MS = 150;
 
   // ===== Video URL Deposu =====
   const videoStore = new Map(); // tweetId -> { variants, thumbnail }
 
   // Bekleyen resolve'lar (on-demand fetch için)
   const pendingRequests = new Map(); // tweetId -> [resolve callbacks]
+  let addButtonsTimer = null;
 
   // Interceptor'dan gelen videoları dinle
   window.addEventListener('smd-videos-captured', (event) => {
@@ -23,7 +29,7 @@
       });
     });
     // Yeni video bulunduğunda butonları güncelle
-    addDownloadButtons();
+    scheduleAddDownloadButtons();
   });
 
   // Interceptor'dan video yanıtı (sorgu veya on-demand fetch sonucu)
@@ -264,6 +270,11 @@
     addVideoDownloadButtons();
   }
 
+  function scheduleAddDownloadButtons() {
+    clearTimeout(addButtonsTimer);
+    addButtonsTimer = setTimeout(addDownloadButtons, DOM_UPDATE_DEBOUNCE_MS);
+  }
+
   function addImageDownloadButtons() {
     const tweetPhotos = document.querySelectorAll('[data-testid="tweetPhoto"]:not([data-smd-processed])');
 
@@ -501,7 +512,7 @@
       }
     }
     if (shouldCheck) {
-      addDownloadButtons();
+      scheduleAddDownloadButtons();
     }
   });
 
@@ -517,7 +528,31 @@
           detail: { tweetId: tweetId }
         }));
       }
+      scheduleAddDownloadButtons();
     }
+  }
+
+  function observeSpaNavigation(onChange) {
+    const notify = () => {
+      setTimeout(onChange, 0);
+    };
+
+    const originalPushState = history.pushState;
+    history.pushState = function (...args) {
+      const result = originalPushState.apply(this, args);
+      notify();
+      return result;
+    };
+
+    const originalReplaceState = history.replaceState;
+    history.replaceState = function (...args) {
+      const result = originalReplaceState.apply(this, args);
+      notify();
+      return result;
+    };
+
+    window.addEventListener('popstate', notify);
+    window.addEventListener('hashchange', notify);
   }
 
   // ===== Baslat =====
@@ -534,7 +569,7 @@
     }
 
     // Ilk butonlari ekle
-    setTimeout(addDownloadButtons, 1000);
+    setTimeout(scheduleAddDownloadButtons, 1000);
 
     // DOM degisikliklerini izle
     observer.observe(document.body, {
@@ -543,7 +578,7 @@
     });
 
     // URL degisikliklerini izle (SPA navigasyonu)
-    setInterval(checkUrlChange, 1000);
+    observeSpaNavigation(checkUrlChange);
 
     console.log('[SMD] Twitter/X content script yuklendi (on-demand video fetch aktif)');
   }

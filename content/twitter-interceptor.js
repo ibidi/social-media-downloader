@@ -4,6 +4,10 @@
 
 (function () {
   'use strict';
+  if (window.__smdTwitterInterceptorLoaded) {
+    return;
+  }
+  window.__smdTwitterInterceptorLoaded = true;
 
   // Video URL'lerini saklayacak global depo
   const capturedVideos = new Map(); // tweetId -> { variants, thumbnail }
