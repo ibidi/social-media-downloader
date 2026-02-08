@@ -30,32 +30,8 @@
       const title = getVideoTitle();
 
       if (videoId) {
-        // Thumbnail resimleri
-        const thumbnailQualities = [
-          { name: 'maxresdefault', label: 'Maksimum (1920x1080)' },
-          { name: 'sddefault', label: 'SD (640x480)' },
-          { name: 'hqdefault', label: 'HQ (480x360)' },
-          { name: 'mqdefault', label: 'MQ (320x180)' }
-        ];
-
-        thumbnailQualities.forEach(q => {
-          media.push({
-            type: 'image',
-            url: `https://img.youtube.com/vi/${videoId}/${q.name}.jpg`,
-            thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
-            filename: `${sanitizeFilename(title)}_thumbnail_${q.name}.jpg`,
-            quality: `Thumbnail ${q.label}`
-          });
-        });
-
-        // Video bilgisi
-        media.push({
-          type: 'video',
-          url: url,
-          thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-          filename: `${sanitizeFilename(title)}.mp4`,
-          quality: 'Video (sayfa linki)'
-        });
+        media.push(...getThumbnailMedia(videoId, title));
+        media.push(...getStreamMedia(videoId, title));
       }
     }
 
@@ -116,6 +92,192 @@
       .substring(0, 100);
   }
 
+  function getThumbnailMedia(videoId, title) {
+    const thumbnailQualities = [
+      { name: 'maxresdefault', label: 'Maksimum (1920x1080)' },
+      { name: 'sddefault', label: 'SD (640x480)' },
+      { name: 'hqdefault', label: 'HQ (480x360)' },
+      { name: 'mqdefault', label: 'MQ (320x180)' }
+    ];
+
+    return thumbnailQualities.map(q => ({
+      type: 'image',
+      url: `https://img.youtube.com/vi/${videoId}/${q.name}.jpg`,
+      thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+      filename: `${sanitizeFilename(title)}_thumbnail_${q.name}.jpg`,
+      quality: `Goruntu ${q.label}`
+    }));
+  }
+
+  function getStreamMedia(videoId, title) {
+    const safeTitle = sanitizeFilename(title);
+    const thumbUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    const seen = new Set();
+    const playerResponse = getInitialPlayerResponse();
+    if (!playerResponse?.streamingData) return [];
+
+    const formats = [
+      ...(playerResponse.streamingData.formats || []),
+      ...(playerResponse.streamingData.adaptiveFormats || [])
+    ];
+
+    const media = [];
+    formats.forEach((format) => {
+      const resolvedUrl = resolveFormatUrl(format);
+      if (!resolvedUrl || seen.has(resolvedUrl)) return;
+      seen.add(resolvedUrl);
+
+      const mimeType = parseMimeType(format.mimeType);
+      if (!mimeType) return;
+
+      if (mimeType.startsWith('audio/')) {
+        const ext = getExtensionFromMime(mimeType, 'm4a');
+        const quality = buildAudioQualityLabel(format);
+        media.push({
+          type: 'audio',
+          url: resolvedUrl,
+          thumbnail: thumbUrl,
+          filename: `${safeTitle}_audio_${sanitizeFilename(quality)}.${ext}`,
+          quality
+        });
+        return;
+      }
+
+      if (mimeType.startsWith('video/')) {
+        const ext = getExtensionFromMime(mimeType, 'mp4');
+        const hasAudio = formatHasAudio(format);
+        const quality = buildVideoQualityLabel(format, hasAudio);
+        media.push({
+          type: 'video',
+          url: resolvedUrl,
+          thumbnail: thumbUrl,
+          filename: `${safeTitle}_video_${sanitizeFilename(quality)}.${ext}`,
+          quality
+        });
+      }
+    });
+
+    return media;
+  }
+
+  function getInitialPlayerResponse() {
+    const scripts = Array.from(document.querySelectorAll('script'));
+    for (const script of scripts) {
+      const text = script.textContent || '';
+      if (!text.includes('ytInitialPlayerResponse')) continue;
+      const json = extractJsonObjectAfterToken(text, 'ytInitialPlayerResponse');
+      if (json) return json;
+    }
+    return null;
+  }
+
+  function extractJsonObjectAfterToken(source, token) {
+    const tokenIndex = source.indexOf(token);
+    if (tokenIndex < 0) return null;
+    const firstBraceIndex = source.indexOf('{', tokenIndex);
+    if (firstBraceIndex < 0) return null;
+
+    let depth = 0;
+    let inString = false;
+    let quoteChar = '';
+    let escaped = false;
+
+    for (let i = firstBraceIndex; i < source.length; i += 1) {
+      const ch = source[i];
+
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (ch === '\\') {
+          escaped = true;
+        } else if (ch === quoteChar) {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (ch === '"' || ch === "'") {
+        inString = true;
+        quoteChar = ch;
+        continue;
+      }
+
+      if (ch === '{') depth += 1;
+      if (ch === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          const jsonCandidate = source.slice(firstBraceIndex, i + 1);
+          try {
+            return JSON.parse(jsonCandidate);
+          } catch {
+            return null;
+          }
+        }
+      }
+    }
+
+    return null;
+  }
+
+  function parseMimeType(rawMimeType) {
+    if (!rawMimeType || typeof rawMimeType !== 'string') return '';
+    return rawMimeType.split(';')[0].trim().toLowerCase();
+  }
+
+  function getExtensionFromMime(mimeType, fallbackExt) {
+    const ext = mimeType.split('/')[1];
+    if (!ext) return fallbackExt;
+    if (ext === 'mp4') return 'mp4';
+    if (ext === 'webm') return 'webm';
+    if (ext === '3gpp') return '3gp';
+    if (ext === 'mpeg') return 'mp3';
+    return ext;
+  }
+
+  function resolveFormatUrl(format) {
+    if (format.url) return format.url;
+    const cipher = format.signatureCipher || format.cipher;
+    if (!cipher) return null;
+
+    const params = new URLSearchParams(cipher);
+    const encodedUrl = params.get('url');
+    if (!encodedUrl) return null;
+
+    const signature = params.get('sig') || params.get('lsig');
+    const encryptedSig = params.get('s');
+    const signatureParam = params.get('sp') || 'signature';
+
+    try {
+      const finalUrl = new URL(decodeURIComponent(encodedUrl));
+      if (signature) {
+        finalUrl.searchParams.set(signatureParam, signature);
+      } else if (encryptedSig) {
+        // s alanı çözülmeden kullanılmaz.
+        return null;
+      }
+      return finalUrl.toString();
+    } catch {
+      return null;
+    }
+  }
+
+  function formatHasAudio(format) {
+    if (format.audioQuality) return true;
+    const mime = format.mimeType || '';
+    return /codecs="[^"]*(mp4a|opus|vorbis|aac)/i.test(mime);
+  }
+
+  function buildVideoQualityLabel(format, hasAudio) {
+    const quality = format.qualityLabel || format.quality || 'Video';
+    return hasAudio ? quality : `${quality} (sessiz)`;
+  }
+
+  function buildAudioQualityLabel(format) {
+    const kbps = format.bitrate ? Math.round(format.bitrate / 1000) : 0;
+    if (kbps > 0) return `${kbps}kbps`;
+    return format.audioQuality || 'Ses';
+  }
+
   // Video sayfasına indirme butonu ekle
   function addDownloadButton() {
     // Zaten buton varsa ekleme
@@ -151,7 +313,7 @@
     const btn = document.createElement('button');
     btn.className = 'smd-yt-download-btn';
     btn.innerHTML = `${DOWNLOAD_ICON_SVG} İndir`;
-    btn.title = 'Thumbnail İndir';
+    btn.title = 'Medya İndir';
 
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -171,8 +333,10 @@
       return;
     }
 
-    const title = getVideoTitle();
-    const safeTitle = sanitizeFilename(title);
+    const mediaItems = findAllMedia();
+    const videoItems = mediaItems.filter((item) => item.type === 'video');
+    const audioItems = mediaItems.filter((item) => item.type === 'audio');
+    const imageItems = mediaItems.filter((item) => item.type === 'image');
 
     const menu = document.createElement('div');
     menu.className = 'smd-yt-menu';
@@ -190,21 +354,61 @@
       font-family: 'Roboto', Arial, sans-serif;
     `;
 
-    const menuTitle = document.createElement('div');
-    menuTitle.style.cssText = 'padding: 8px 16px; font-size: 12px; color: #888; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px;';
-    menuTitle.textContent = '📸 Thumbnail İndir';
-    menu.appendChild(menuTitle);
+    appendMenuSection(menu, '🎬 Video', videoItems, (item) => {
+      triggerDownload(item);
+      showIndicator(`Video indiriliyor (${item.quality})...`);
+      menu.remove();
+    });
 
-    const qualities = [
-      { name: 'maxresdefault', label: 'Maksimum Çözünürlük', desc: '1920 × 1080' },
-      { name: 'sddefault', label: 'Standart', desc: '640 × 480' },
-      { name: 'hqdefault', label: 'Yüksek Kalite', desc: '480 × 360' },
-      { name: 'mqdefault', label: 'Orta Kalite', desc: '320 × 180' }
-    ];
+    appendMenuSection(menu, '🎵 Ses', audioItems, (item) => {
+      triggerDownload(item);
+      showIndicator(`Ses indiriliyor (${item.quality})...`);
+      menu.remove();
+    });
 
-    qualities.forEach(q => {
-      const item = document.createElement('button');
-      item.style.cssText = `
+    appendMenuSection(menu, '🖼️ Goruntu', imageItems, (item) => {
+      triggerDownload(item);
+      showIndicator(`Goruntu indiriliyor (${item.quality})...`);
+      menu.remove();
+    });
+
+    const info = document.createElement('div');
+    info.style.cssText = 'padding: 8px 16px; border-top: 1px solid rgba(255,255,255,0.06); color: #888; font-size: 11px;';
+    info.textContent = 'Not: Bazi videolarda YouTube sifreli URL kullandigi icin tum kalite secenekleri gorunmeyebilir.';
+    menu.appendChild(info);
+
+    // Menüyü konumlandır
+    anchorBtn.style.position = 'relative';
+    anchorBtn.appendChild(menu);
+
+    // Dışarı tıklanınca kapat
+    setTimeout(() => {
+      document.addEventListener('click', function closeMenu(e) {
+        if (!menu.contains(e.target) && e.target !== anchorBtn) {
+          menu.remove();
+          document.removeEventListener('click', closeMenu);
+        }
+      });
+    }, 100);
+  }
+
+  function appendMenuSection(menu, title, items, onClick) {
+    const sectionTitle = document.createElement('div');
+    sectionTitle.style.cssText = 'padding: 8px 16px; font-size: 12px; color: #888; border-top: 1px solid rgba(255,255,255,0.06); margin-top: 4px;';
+    sectionTitle.textContent = title;
+    menu.appendChild(sectionTitle);
+
+    if (!items.length) {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'padding: 8px 16px; font-size: 12px; color: #666;';
+      empty.textContent = 'Secenek bulunamadi';
+      menu.appendChild(empty);
+      return;
+    }
+
+    items.forEach((item) => {
+      const button = document.createElement('button');
+      button.style.cssText = `
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -220,84 +424,33 @@
         font-family: inherit;
       `;
 
-      item.innerHTML = `
-        <span>${q.label}</span>
-        <span style="font-size: 11px; color: #888;">${q.desc}</span>
-      `;
+      const left = document.createElement('span');
+      left.textContent = item.quality || item.filename;
+      const right = document.createElement('span');
+      right.style.cssText = 'font-size: 11px; color: #888;';
+      right.textContent = item.filename.split('.').pop()?.toUpperCase() || '';
 
-      item.addEventListener('mouseenter', () => {
-        item.style.background = 'rgba(102, 126, 234, 0.15)';
-      });
-      item.addEventListener('mouseleave', () => {
-        item.style.background = 'transparent';
-      });
+      button.appendChild(left);
+      button.appendChild(right);
 
-      item.addEventListener('click', () => {
-        const thumbUrl = `https://img.youtube.com/vi/${videoId}/${q.name}.jpg`;
-        chrome.runtime.sendMessage({
-          action: 'download',
-          url: thumbUrl,
-          filename: `${safeTitle}_${q.name}.jpg`
-        });
-        showIndicator(`Thumbnail indiriliyor (${q.label})...`);
-        menu.remove();
+      button.addEventListener('mouseenter', () => {
+        button.style.background = 'rgba(102, 126, 234, 0.15)';
       });
+      button.addEventListener('mouseleave', () => {
+        button.style.background = 'transparent';
+      });
+      button.addEventListener('click', () => onClick(item));
 
-      menu.appendChild(item);
+      menu.appendChild(button);
     });
+  }
 
-    // Video linki kopyala butonu
-    const separator = document.createElement('div');
-    separator.style.cssText = 'border-top: 1px solid rgba(255,255,255,0.06); margin: 4px 0;';
-    menu.appendChild(separator);
-
-    const copyBtn = document.createElement('button');
-    copyBtn.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      width: 100%;
-      padding: 10px 16px;
-      border: none;
-      background: transparent;
-      color: #667eea;
-      font-size: 13px;
-      cursor: pointer;
-      text-align: left;
-      transition: background 0.15s;
-      font-family: inherit;
-    `;
-    copyBtn.textContent = '📋 Video Linkini Kopyala';
-
-    copyBtn.addEventListener('mouseenter', () => {
-      copyBtn.style.background = 'rgba(102, 126, 234, 0.15)';
+  function triggerDownload(item) {
+    chrome.runtime.sendMessage({
+      action: 'download',
+      url: item.url,
+      filename: item.filename
     });
-    copyBtn.addEventListener('mouseleave', () => {
-      copyBtn.style.background = 'transparent';
-    });
-
-    copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(window.location.href).then(() => {
-        showIndicator('Video linki kopyalandı!');
-      });
-      menu.remove();
-    });
-
-    menu.appendChild(copyBtn);
-
-    // Menüyü konumlandır
-    anchorBtn.style.position = 'relative';
-    anchorBtn.appendChild(menu);
-
-    // Dışarı tıklanınca kapat
-    setTimeout(() => {
-      document.addEventListener('click', function closeMenu(e) {
-        if (!menu.contains(e.target) && e.target !== anchorBtn) {
-          menu.remove();
-          document.removeEventListener('click', closeMenu);
-        }
-      });
-    }, 100);
   }
 
   // Bildirim göster

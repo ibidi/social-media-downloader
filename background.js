@@ -107,5 +107,5 @@ function sanitizeFilename(filename) {
 
 // Eklenti yüklendiğinde
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('[SMD] Social Media Downloader v1.1.1 yüklendi!');
+  console.log('[SMD] Social Media Downloader v1.1.2 yüklendi!');
 });

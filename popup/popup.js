@@ -112,8 +112,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       item.className = 'media-item';
 
       const isVideo = media.type === 'video';
-      const typeClass = isVideo ? 'video' : 'image';
-      const typeLabel = isVideo ? 'Video' : 'Resim';
+      const isAudio = media.type === 'audio';
+      const typeClass = isVideo ? 'video' : (isAudio ? 'audio' : 'image');
+      const typeLabel = isVideo ? 'Video' : (isAudio ? 'Ses' : 'Resim');
       const thumbSrc = media.thumbnail || media.url;
       const fileLabel = media.filename || `media_${index + 1}`;
       const qualityLabel = media.quality ? `${typeLabel} • ${media.quality}` : typeLabel;
