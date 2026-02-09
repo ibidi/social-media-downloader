@@ -125,6 +125,7 @@
     formats.forEach((format) => {
       const resolvedUrl = resolveFormatUrl(format);
       if (!resolvedUrl || seen.has(resolvedUrl)) return;
+      if (!isDirectMediaUrl(resolvedUrl)) return;
       seen.add(resolvedUrl);
 
       const mimeType = parseMimeType(format.mimeType);
@@ -248,7 +249,7 @@
     const signatureParam = params.get('sp') || 'signature';
 
     try {
-      const finalUrl = new URL(decodeURIComponent(encodedUrl));
+      const finalUrl = new URL(encodedUrl);
       if (signature) {
         finalUrl.searchParams.set(signatureParam, signature);
       } else if (encryptedSig) {
@@ -258,6 +259,16 @@
       return finalUrl.toString();
     } catch {
       return null;
+    }
+  }
+
+  function isDirectMediaUrl(url) {
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname;
+      return host.includes('googlevideo.com');
+    } catch {
+      return false;
     }
   }
 
